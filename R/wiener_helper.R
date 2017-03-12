@@ -73,18 +73,24 @@ wiener_within_init <- function(data) {
   tmp_out$alpha[data$pos_other_pars[1,seq_len(data$n_other_pars[1])]] <- rnorm(data$n_other_pars[1], 0, 0.1)
   
   tmp_out$tau <- rep(0, data$n_par[2])
-  tmp_out$tau[data$pos_intercept[2,seq_len(data$n_intercept[2])]] <- runif(data$n_intercept[2], 0.0, 0.2)
+  tmp_out$tau[data$pos_intercept[2,seq_len(data$n_intercept[2])]] <- runif(data$n_intercept[2], 0.0, min(c(data$Y_u, data$Y_l)-0.05))
   tmp_out$tau[data$pos_other_pars[2,seq_len(data$n_other_pars[2])]] <- rnorm(data$n_other_pars[2], 0, 0.01)
   
   
   tmp_out$beta <- rep(0, data$n_par[3])
-  tmp_out$beta[data$pos_intercept[3,seq_len(data$n_intercept[3])]] <- runif(data$n_intercept[3], 0.4, 0.6)
+  tmp_out$beta[data$pos_intercept[3,seq_len(data$n_intercept[3])]] <- runif(data$n_intercept[3], 0.3, 0.7)
   tmp_out$beta[data$pos_other_pars[3,seq_len(data$n_other_pars[3])]] <- rnorm(data$n_other_pars[3], 0, 0.01)
   
   
   tmp_out$delta <- rep(0, data$n_par[4])
-  tmp_out$delta[data$pos_intercept[4,seq_len(data$n_intercept[4])]] <- runif(data$n_intercept[4], 1, 2)
+  tmp_out$delta[data$pos_intercept[4,seq_len(data$n_intercept[4])]] <- runif(data$n_intercept[4], 0.5, 4)
   tmp_out$delta[data$pos_other_pars[4,seq_len(data$n_other_pars[4])]] <- rnorm(data$n_other_pars[4], 0, 1)
+  
+  for (i in seq_along(tmp_out)) {
+    if (is.null(dim(tmp_out[[i]]))) {
+      tmp_out[[i]] <- as.array(tmp_out[[i]])
+    }
+  }
   
   return(tmp_out)
 }
