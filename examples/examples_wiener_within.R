@@ -1,0 +1,22 @@
+
+\dontrun{
+data(rr98, package = "rtdists")
+rr98 <- rr98[!rr98$outlier,]
+
+bins <- c(-0.5, 10.5, 13.5, 16.5, 19.5, 32.5)
+rr98$strength_bin <- cut(rr98$strength, breaks = bins, include.lowest = TRUE)
+levels(rr98$strength_bin) <- as.character(1:7)
+
+## use only 10% of data:
+rr98_red <- droplevels(rr98[ sample(seq_len(nrow(rr98)), ceiling(nrow(rr98)/10)),])
+
+#options(mc.cores = parallel::detectCores())
+fit_rr <- stan_wiener_within(alpha = ~0+instruction, 
+                             tau = ~0+instruction, 
+                             beta = ~0+instruction, 
+                             delta = ~0+instruction:strength_bin, 
+                             data = rr98_red, 
+                             rt = "rt", response = "response_num", id = "id",
+                             chains = 2, warmup = 250, iter = 500)
+traceplot(fit_rr, pars = c())
+}
