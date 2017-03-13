@@ -3,3 +3,5 @@ cleanup*
 ^.*\.Rproj$
 ^\.Rproj\.user$
 dev.R
+README.md
+examples

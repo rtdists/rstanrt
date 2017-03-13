@@ -6,7 +6,8 @@
 \usage{
 stan_wiener_within(alpha, tau, beta, delta, data, rt, response, id,
   pos_intercepts = "all", chains = 4, warmup = 1000, iter = 2000,
-  thin = 1, control = list(adapt_delta = 0.99, max_treedepth = 15))
+  thin = 1, control = list(adapt_delta = 0.99, max_treedepth = 15),
+  pars = c("alpha", "tau", "beta", "delta", "sigma", "deltahat", "Omega"))
 }
 \description{
 Fitting a completely within-subjects Wiener model
