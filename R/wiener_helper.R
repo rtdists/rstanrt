@@ -64,16 +64,16 @@ create_data_wiener_within <- function(alpha, tau, beta, delta,
 wiener_within_init <- function(data) {
   N <- data$N
   nparams <- sum(data$n_par)
-  tmp_out <- list(deltahat_tilde=matrix(rnorm(N * nparams, 0, 0.01), nparams, N), 
+  tmp_out <- list(deltahat_tilde=matrix(rnorm(N * nparams, 0, 0.001), nparams, N), 
                   L_Omega=diag(nparams),
-                  sigma = runif(nparams)
+                  sigma = runif(nparams, 0.1, 0.5)
   )
   tmp_out$alpha <- rep(0, data$n_par[1])
   tmp_out$alpha[data$pos_intercept[1,seq_len(data$n_intercept[1])]] <- runif(data$n_intercept[1], 0.5, 1.5)
   tmp_out$alpha[data$pos_other_pars[1,seq_len(data$n_other_pars[1])]] <- rnorm(data$n_other_pars[1], 0, 0.1)
   
   tmp_out$tau <- rep(0, data$n_par[2])
-  tmp_out$tau[data$pos_intercept[2,seq_len(data$n_intercept[2])]] <- runif(data$n_intercept[2], 0.0, min(c(data$Y_u, data$Y_l)-0.05))
+  tmp_out$tau[data$pos_intercept[2,seq_len(data$n_intercept[2])]] <- pmin(runif(data$n_intercept[2], 0.0, min(c(data$Y_u, data$Y_l)-0.05)), 0.05)
   tmp_out$tau[data$pos_other_pars[2,seq_len(data$n_other_pars[2])]] <- rnorm(data$n_other_pars[2], 0, 0.01)
   
   
@@ -83,7 +83,7 @@ wiener_within_init <- function(data) {
   
   
   tmp_out$delta <- rep(0, data$n_par[4])
-  tmp_out$delta[data$pos_intercept[4,seq_len(data$n_intercept[4])]] <- runif(data$n_intercept[4], 0.5, 4)
+  tmp_out$delta[data$pos_intercept[4,seq_len(data$n_intercept[4])]] <- rnorm(data$n_intercept[4], 0, 2)
   tmp_out$delta[data$pos_other_pars[4,seq_len(data$n_other_pars[4])]] <- rnorm(data$n_other_pars[4], 0, 1)
   
   for (i in seq_along(tmp_out)) {
