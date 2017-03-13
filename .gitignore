@@ -12,3 +12,9 @@
 # vignettes/*.html
 # vignettes/*.pdf
 .Rproj.user
+
+## compiled objects:
+/src/*.so
+/src/*.o
+/src/*.dll
+
