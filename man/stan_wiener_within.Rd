@@ -7,7 +7,8 @@
 stan_wiener_within(alpha, tau, beta, delta, data, rt, response, id,
   pos_intercepts = "all", chains = 4, warmup = 1000, iter = 2000,
   thin = 1, control = list(adapt_delta = 0.99, max_treedepth = 15),
-  pars = c("alpha", "tau", "beta", "delta", "sigma", "deltahat", "Omega"))
+  pars = c("alpha", "tau", "beta", "delta", "sigma", "deltahat", "Omega"),
+  seed = sample.int(.Machine$integer.max, 1))
 }
 \description{
 Fitting a completely within-subjects Wiener model
@@ -98,6 +99,7 @@ cors[upper.tri(cors)] <- c(0, 0.2, 0.3, 0.7, 0.5, 0)
 cors <- cors + t(cors)
 diag(cors) <- 1
 Sigma <- MBESS::cor2cov(cors, vars)
+set.seed(5)
 pars <- MASS::mvrnorm(N_participants,mu = mus, Sigma = Sigma)
 
 d_prep <- vector("list", N_participants)

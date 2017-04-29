@@ -83,6 +83,7 @@ cors[upper.tri(cors)] <- c(0, 0.2, 0.3, 0.7, 0.5, 0)
 cors <- cors + t(cors)
 diag(cors) <- 1
 Sigma <- MBESS::cor2cov(cors, vars)
+set.seed(5)
 pars <- MASS::mvrnorm(N_participants,mu = mus, Sigma = Sigma)
 
 d_prep <- vector("list", N_participants)
