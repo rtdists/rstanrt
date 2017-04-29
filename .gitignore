@@ -17,5 +17,5 @@
 /src/*.so
 /src/*.o
 /src/*.dll
-/src/include/
+#/src/include/
 
