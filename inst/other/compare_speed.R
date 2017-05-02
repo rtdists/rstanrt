@@ -1,4 +1,23 @@
 
+require(RWiener) # for random generation.
+N_participants <- 10
+N_trials <- 20
+mus <- c(alpha = 1, tau = 0.3, beta = 0.5, delta = 1.5)
+vars <- c(alpha = 0.2, tau = 0.05, beta = 0.1, delta = 0.5)
+cors <- matrix(0, 4, 4)
+cors[upper.tri(cors)] <- c(0, 0.2, 0.3, 0.7, 0.5, 0)
+cors <- cors + t(cors)
+diag(cors) <- 1
+Sigma <- MBESS::cor2cov(cors, vars)
+set.seed(5)
+pars <- MASS::mvrnorm(N_participants,mu = mus, Sigma = Sigma)
+
+d_prep <- vector("list", N_participants)
+for (i in seq_len(N_participants)) {
+d_prep[[i]] <-cbind( id = factor(i), rwiener(N_trials, alpha = pars[i,"alpha"], tau = pars[i,"tau"], beta = pars[i,"beta"], delta = pars[i,"delta"]))
+}
+d_prep <- do.call("rbind", d_prep)
+
 set.seed(666)
 system.time(
   recov_pars <- stan_wiener_within(alpha = ~1, 
@@ -10,11 +29,11 @@ system.time(
                              chains = 1, warmup = 250, iter = 750, seed=666)
 
 )
-#     user   system  elapsed 
-# 1256.319    2.445 1273.813 
+#    user  system elapsed 
+# 701.907   0.462 703.052 
 
-require(rstan)
-model2 <- stan_model("exec/wiener_hierarch_within2.stan")
+#require(rstan)
+#model2 <- stan_model("exec/wiener_hierarch_within2.stan")
 set.seed(666)
 system.time(
   recov_pars2 <- stan_wiener_within2(alpha = ~1, 
@@ -25,6 +44,9 @@ system.time(
                              rt = "q", response = "resp", id = "id",
                              chains = 1, warmup = 250, iter = 750, seed=666)
 )
+                              chains = 2, warmup = 250, iter = 500)
+#    user  system elapsed 
+# 662.459   0.568 663.352 
 
 fit_rr <- stan_wiener_within2(alpha = ~0+condition, 
                               tau = ~1, 
@@ -32,7 +54,7 @@ fit_rr <- stan_wiener_within2(alpha = ~0+condition,
                               delta = ~1, 
                               data = sa_red, 
                               rt = "rt", response = "response", id = "id",
-                              chains = 2, warmup = 250, iter = 500)
+
 
 data(speed_acc, package = "rtdists")
 speed_acc <- droplevels(speed_acc[!speed_acc$censor,])
