@@ -8,6 +8,1061 @@
 
 #include <stan/model/model_header.hpp>
 
+namespace model_wiener_fixed_namespace {
+
+using std::istream;
+using std::string;
+using std::stringstream;
+using std::vector;
+using stan::io::dump;
+using stan::math::lgamma;
+using stan::model::prob_grad;
+using namespace stan::math;
+
+typedef Eigen::Matrix<double,Eigen::Dynamic,1> vector_d;
+typedef Eigen::Matrix<double,1,Eigen::Dynamic> row_vector_d;
+typedef Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> matrix_d;
+
+static int current_statement_begin__;
+
+class model_wiener_fixed : public prob_grad {
+private:
+    vector<int> n_par;
+    vector<int> n_intercept;
+    vector<int> n_other_pars;
+    vector<vector<int> > pos_intercept;
+    vector<vector<int> > pos_other_pars;
+    int K_u;
+    vector_d Y_u;
+    matrix_d mmatrix_alpha_u;
+    matrix_d mmatrix_tau_u;
+    matrix_d mmatrix_beta_u;
+    matrix_d mmatrix_delta_u;
+    int K_l;
+    vector_d Y_l;
+    matrix_d mmatrix_alpha_l;
+    matrix_d mmatrix_tau_l;
+    matrix_d mmatrix_beta_l;
+    matrix_d mmatrix_delta_l;
+    int nparams;
+public:
+    model_wiener_fixed(stan::io::var_context& context__,
+        std::ostream* pstream__ = 0)
+        : prob_grad(0) {
+        typedef boost::ecuyer1988 rng_t;
+        rng_t base_rng(0);  // 0 seed default
+        ctor_body(context__, base_rng, pstream__);
+    }
+
+    template <class RNG>
+    model_wiener_fixed(stan::io::var_context& context__,
+        RNG& base_rng__,
+        std::ostream* pstream__ = 0)
+        : prob_grad(0) {
+        ctor_body(context__, base_rng__, pstream__);
+    }
+
+    template <class RNG>
+    void ctor_body(stan::io::var_context& context__,
+                   RNG& base_rng__,
+                   std::ostream* pstream__) {
+        current_statement_begin__ = -1;
+
+        static const char* function__ = "model_wiener_fixed_namespace::model_wiener_fixed";
+        (void) function__;  // dummy to suppress unused var warning
+        size_t pos__;
+        (void) pos__;  // dummy to suppress unused var warning
+        std::vector<int> vals_i__;
+        std::vector<double> vals_r__;
+        double DUMMY_VAR__(std::numeric_limits<double>::quiet_NaN());
+        (void) DUMMY_VAR__;  // suppress unused var warning
+
+        // initialize member variables
+        validate_non_negative_index("n_par", "4", 4);
+        context__.validate_dims("data initialization", "n_par", "int", context__.to_vec(4));
+        validate_non_negative_index("n_par", "4", 4);
+        n_par = std::vector<int>(4,int(0));
+        vals_i__ = context__.vals_i("n_par");
+        pos__ = 0;
+        size_t n_par_limit_0__ = 4;
+        for (size_t i_0__ = 0; i_0__ < n_par_limit_0__; ++i_0__) {
+            n_par[i_0__] = vals_i__[pos__++];
+        }
+        validate_non_negative_index("n_intercept", "4", 4);
+        context__.validate_dims("data initialization", "n_intercept", "int", context__.to_vec(4));
+        validate_non_negative_index("n_intercept", "4", 4);
+        n_intercept = std::vector<int>(4,int(0));
+        vals_i__ = context__.vals_i("n_intercept");
+        pos__ = 0;
+        size_t n_intercept_limit_0__ = 4;
+        for (size_t i_0__ = 0; i_0__ < n_intercept_limit_0__; ++i_0__) {
+            n_intercept[i_0__] = vals_i__[pos__++];
+        }
+        validate_non_negative_index("n_other_pars", "4", 4);
+        context__.validate_dims("data initialization", "n_other_pars", "int", context__.to_vec(4));
+        validate_non_negative_index("n_other_pars", "4", 4);
+        n_other_pars = std::vector<int>(4,int(0));
+        vals_i__ = context__.vals_i("n_other_pars");
+        pos__ = 0;
+        size_t n_other_pars_limit_0__ = 4;
+        for (size_t i_0__ = 0; i_0__ < n_other_pars_limit_0__; ++i_0__) {
+            n_other_pars[i_0__] = vals_i__[pos__++];
+        }
+        validate_non_negative_index("pos_intercept", "4", 4);
+        validate_non_negative_index("pos_intercept", "max(n_intercept)", max(n_intercept));
+        context__.validate_dims("data initialization", "pos_intercept", "int", context__.to_vec(4,max(n_intercept)));
+        validate_non_negative_index("pos_intercept", "4", 4);
+        validate_non_negative_index("pos_intercept", "max(n_intercept)", max(n_intercept));
+        pos_intercept = std::vector<std::vector<int> >(4,std::vector<int>(max(n_intercept),int(0)));
+        vals_i__ = context__.vals_i("pos_intercept");
+        pos__ = 0;
+        size_t pos_intercept_limit_1__ = max(n_intercept);
+        for (size_t i_1__ = 0; i_1__ < pos_intercept_limit_1__; ++i_1__) {
+            size_t pos_intercept_limit_0__ = 4;
+            for (size_t i_0__ = 0; i_0__ < pos_intercept_limit_0__; ++i_0__) {
+                pos_intercept[i_0__][i_1__] = vals_i__[pos__++];
+            }
+        }
+        validate_non_negative_index("pos_other_pars", "4", 4);
+        validate_non_negative_index("pos_other_pars", "max(n_other_pars)", max(n_other_pars));
+        context__.validate_dims("data initialization", "pos_other_pars", "int", context__.to_vec(4,max(n_other_pars)));
+        validate_non_negative_index("pos_other_pars", "4", 4);
+        validate_non_negative_index("pos_other_pars", "max(n_other_pars)", max(n_other_pars));
+        pos_other_pars = std::vector<std::vector<int> >(4,std::vector<int>(max(n_other_pars),int(0)));
+        vals_i__ = context__.vals_i("pos_other_pars");
+        pos__ = 0;
+        size_t pos_other_pars_limit_1__ = max(n_other_pars);
+        for (size_t i_1__ = 0; i_1__ < pos_other_pars_limit_1__; ++i_1__) {
+            size_t pos_other_pars_limit_0__ = 4;
+            for (size_t i_0__ = 0; i_0__ < pos_other_pars_limit_0__; ++i_0__) {
+                pos_other_pars[i_0__][i_1__] = vals_i__[pos__++];
+            }
+        }
+        context__.validate_dims("data initialization", "K_u", "int", context__.to_vec());
+        K_u = int(0);
+        vals_i__ = context__.vals_i("K_u");
+        pos__ = 0;
+        K_u = vals_i__[pos__++];
+        validate_non_negative_index("Y_u", "K_u", K_u);
+        context__.validate_dims("data initialization", "Y_u", "vector_d", context__.to_vec(K_u));
+        validate_non_negative_index("Y_u", "K_u", K_u);
+        Y_u = vector_d(static_cast<Eigen::VectorXd::Index>(K_u));
+        vals_r__ = context__.vals_r("Y_u");
+        pos__ = 0;
+        size_t Y_u_i_vec_lim__ = K_u;
+        for (size_t i_vec__ = 0; i_vec__ < Y_u_i_vec_lim__; ++i_vec__) {
+            Y_u[i_vec__] = vals_r__[pos__++];
+        }
+        validate_non_negative_index("mmatrix_alpha_u", "K_u", K_u);
+        validate_non_negative_index("mmatrix_alpha_u", "get_base1(n_par,1,\"n_par\",1)", get_base1(n_par,1,"n_par",1));
+        context__.validate_dims("data initialization", "mmatrix_alpha_u", "matrix_d", context__.to_vec(K_u,get_base1(n_par,1,"n_par",1)));
+        validate_non_negative_index("mmatrix_alpha_u", "K_u", K_u);
+        validate_non_negative_index("mmatrix_alpha_u", "get_base1(n_par,1,\"n_par\",1)", get_base1(n_par,1,"n_par",1));
+        mmatrix_alpha_u = matrix_d(static_cast<Eigen::VectorXd::Index>(K_u),static_cast<Eigen::VectorXd::Index>(get_base1(n_par,1,"n_par",1)));
+        vals_r__ = context__.vals_r("mmatrix_alpha_u");
+        pos__ = 0;
+        size_t mmatrix_alpha_u_m_mat_lim__ = K_u;
+        size_t mmatrix_alpha_u_n_mat_lim__ = get_base1(n_par,1,"n_par",1);
+        for (size_t n_mat__ = 0; n_mat__ < mmatrix_alpha_u_n_mat_lim__; ++n_mat__) {
+            for (size_t m_mat__ = 0; m_mat__ < mmatrix_alpha_u_m_mat_lim__; ++m_mat__) {
+                mmatrix_alpha_u(m_mat__,n_mat__) = vals_r__[pos__++];
+            }
+        }
+        validate_non_negative_index("mmatrix_tau_u", "K_u", K_u);
+        validate_non_negative_index("mmatrix_tau_u", "get_base1(n_par,2,\"n_par\",1)", get_base1(n_par,2,"n_par",1));
+        context__.validate_dims("data initialization", "mmatrix_tau_u", "matrix_d", context__.to_vec(K_u,get_base1(n_par,2,"n_par",1)));
+        validate_non_negative_index("mmatrix_tau_u", "K_u", K_u);
+        validate_non_negative_index("mmatrix_tau_u", "get_base1(n_par,2,\"n_par\",1)", get_base1(n_par,2,"n_par",1));
+        mmatrix_tau_u = matrix_d(static_cast<Eigen::VectorXd::Index>(K_u),static_cast<Eigen::VectorXd::Index>(get_base1(n_par,2,"n_par",1)));
+        vals_r__ = context__.vals_r("mmatrix_tau_u");
+        pos__ = 0;
+        size_t mmatrix_tau_u_m_mat_lim__ = K_u;
+        size_t mmatrix_tau_u_n_mat_lim__ = get_base1(n_par,2,"n_par",1);
+        for (size_t n_mat__ = 0; n_mat__ < mmatrix_tau_u_n_mat_lim__; ++n_mat__) {
+            for (size_t m_mat__ = 0; m_mat__ < mmatrix_tau_u_m_mat_lim__; ++m_mat__) {
+                mmatrix_tau_u(m_mat__,n_mat__) = vals_r__[pos__++];
+            }
+        }
+        validate_non_negative_index("mmatrix_beta_u", "K_u", K_u);
+        validate_non_negative_index("mmatrix_beta_u", "get_base1(n_par,3,\"n_par\",1)", get_base1(n_par,3,"n_par",1));
+        context__.validate_dims("data initialization", "mmatrix_beta_u", "matrix_d", context__.to_vec(K_u,get_base1(n_par,3,"n_par",1)));
+        validate_non_negative_index("mmatrix_beta_u", "K_u", K_u);
+        validate_non_negative_index("mmatrix_beta_u", "get_base1(n_par,3,\"n_par\",1)", get_base1(n_par,3,"n_par",1));
+        mmatrix_beta_u = matrix_d(static_cast<Eigen::VectorXd::Index>(K_u),static_cast<Eigen::VectorXd::Index>(get_base1(n_par,3,"n_par",1)));
+        vals_r__ = context__.vals_r("mmatrix_beta_u");
+        pos__ = 0;
+        size_t mmatrix_beta_u_m_mat_lim__ = K_u;
+        size_t mmatrix_beta_u_n_mat_lim__ = get_base1(n_par,3,"n_par",1);
+        for (size_t n_mat__ = 0; n_mat__ < mmatrix_beta_u_n_mat_lim__; ++n_mat__) {
+            for (size_t m_mat__ = 0; m_mat__ < mmatrix_beta_u_m_mat_lim__; ++m_mat__) {
+                mmatrix_beta_u(m_mat__,n_mat__) = vals_r__[pos__++];
+            }
+        }
+        validate_non_negative_index("mmatrix_delta_u", "K_u", K_u);
+        validate_non_negative_index("mmatrix_delta_u", "get_base1(n_par,4,\"n_par\",1)", get_base1(n_par,4,"n_par",1));
+        context__.validate_dims("data initialization", "mmatrix_delta_u", "matrix_d", context__.to_vec(K_u,get_base1(n_par,4,"n_par",1)));
+        validate_non_negative_index("mmatrix_delta_u", "K_u", K_u);
+        validate_non_negative_index("mmatrix_delta_u", "get_base1(n_par,4,\"n_par\",1)", get_base1(n_par,4,"n_par",1));
+        mmatrix_delta_u = matrix_d(static_cast<Eigen::VectorXd::Index>(K_u),static_cast<Eigen::VectorXd::Index>(get_base1(n_par,4,"n_par",1)));
+        vals_r__ = context__.vals_r("mmatrix_delta_u");
+        pos__ = 0;
+        size_t mmatrix_delta_u_m_mat_lim__ = K_u;
+        size_t mmatrix_delta_u_n_mat_lim__ = get_base1(n_par,4,"n_par",1);
+        for (size_t n_mat__ = 0; n_mat__ < mmatrix_delta_u_n_mat_lim__; ++n_mat__) {
+            for (size_t m_mat__ = 0; m_mat__ < mmatrix_delta_u_m_mat_lim__; ++m_mat__) {
+                mmatrix_delta_u(m_mat__,n_mat__) = vals_r__[pos__++];
+            }
+        }
+        context__.validate_dims("data initialization", "K_l", "int", context__.to_vec());
+        K_l = int(0);
+        vals_i__ = context__.vals_i("K_l");
+        pos__ = 0;
+        K_l = vals_i__[pos__++];
+        validate_non_negative_index("Y_l", "K_l", K_l);
+        context__.validate_dims("data initialization", "Y_l", "vector_d", context__.to_vec(K_l));
+        validate_non_negative_index("Y_l", "K_l", K_l);
+        Y_l = vector_d(static_cast<Eigen::VectorXd::Index>(K_l));
+        vals_r__ = context__.vals_r("Y_l");
+        pos__ = 0;
+        size_t Y_l_i_vec_lim__ = K_l;
+        for (size_t i_vec__ = 0; i_vec__ < Y_l_i_vec_lim__; ++i_vec__) {
+            Y_l[i_vec__] = vals_r__[pos__++];
+        }
+        validate_non_negative_index("mmatrix_alpha_l", "K_l", K_l);
+        validate_non_negative_index("mmatrix_alpha_l", "get_base1(n_par,1,\"n_par\",1)", get_base1(n_par,1,"n_par",1));
+        context__.validate_dims("data initialization", "mmatrix_alpha_l", "matrix_d", context__.to_vec(K_l,get_base1(n_par,1,"n_par",1)));
+        validate_non_negative_index("mmatrix_alpha_l", "K_l", K_l);
+        validate_non_negative_index("mmatrix_alpha_l", "get_base1(n_par,1,\"n_par\",1)", get_base1(n_par,1,"n_par",1));
+        mmatrix_alpha_l = matrix_d(static_cast<Eigen::VectorXd::Index>(K_l),static_cast<Eigen::VectorXd::Index>(get_base1(n_par,1,"n_par",1)));
+        vals_r__ = context__.vals_r("mmatrix_alpha_l");
+        pos__ = 0;
+        size_t mmatrix_alpha_l_m_mat_lim__ = K_l;
+        size_t mmatrix_alpha_l_n_mat_lim__ = get_base1(n_par,1,"n_par",1);
+        for (size_t n_mat__ = 0; n_mat__ < mmatrix_alpha_l_n_mat_lim__; ++n_mat__) {
+            for (size_t m_mat__ = 0; m_mat__ < mmatrix_alpha_l_m_mat_lim__; ++m_mat__) {
+                mmatrix_alpha_l(m_mat__,n_mat__) = vals_r__[pos__++];
+            }
+        }
+        validate_non_negative_index("mmatrix_tau_l", "K_l", K_l);
+        validate_non_negative_index("mmatrix_tau_l", "get_base1(n_par,2,\"n_par\",1)", get_base1(n_par,2,"n_par",1));
+        context__.validate_dims("data initialization", "mmatrix_tau_l", "matrix_d", context__.to_vec(K_l,get_base1(n_par,2,"n_par",1)));
+        validate_non_negative_index("mmatrix_tau_l", "K_l", K_l);
+        validate_non_negative_index("mmatrix_tau_l", "get_base1(n_par,2,\"n_par\",1)", get_base1(n_par,2,"n_par",1));
+        mmatrix_tau_l = matrix_d(static_cast<Eigen::VectorXd::Index>(K_l),static_cast<Eigen::VectorXd::Index>(get_base1(n_par,2,"n_par",1)));
+        vals_r__ = context__.vals_r("mmatrix_tau_l");
+        pos__ = 0;
+        size_t mmatrix_tau_l_m_mat_lim__ = K_l;
+        size_t mmatrix_tau_l_n_mat_lim__ = get_base1(n_par,2,"n_par",1);
+        for (size_t n_mat__ = 0; n_mat__ < mmatrix_tau_l_n_mat_lim__; ++n_mat__) {
+            for (size_t m_mat__ = 0; m_mat__ < mmatrix_tau_l_m_mat_lim__; ++m_mat__) {
+                mmatrix_tau_l(m_mat__,n_mat__) = vals_r__[pos__++];
+            }
+        }
+        validate_non_negative_index("mmatrix_beta_l", "K_l", K_l);
+        validate_non_negative_index("mmatrix_beta_l", "get_base1(n_par,3,\"n_par\",1)", get_base1(n_par,3,"n_par",1));
+        context__.validate_dims("data initialization", "mmatrix_beta_l", "matrix_d", context__.to_vec(K_l,get_base1(n_par,3,"n_par",1)));
+        validate_non_negative_index("mmatrix_beta_l", "K_l", K_l);
+        validate_non_negative_index("mmatrix_beta_l", "get_base1(n_par,3,\"n_par\",1)", get_base1(n_par,3,"n_par",1));
+        mmatrix_beta_l = matrix_d(static_cast<Eigen::VectorXd::Index>(K_l),static_cast<Eigen::VectorXd::Index>(get_base1(n_par,3,"n_par",1)));
+        vals_r__ = context__.vals_r("mmatrix_beta_l");
+        pos__ = 0;
+        size_t mmatrix_beta_l_m_mat_lim__ = K_l;
+        size_t mmatrix_beta_l_n_mat_lim__ = get_base1(n_par,3,"n_par",1);
+        for (size_t n_mat__ = 0; n_mat__ < mmatrix_beta_l_n_mat_lim__; ++n_mat__) {
+            for (size_t m_mat__ = 0; m_mat__ < mmatrix_beta_l_m_mat_lim__; ++m_mat__) {
+                mmatrix_beta_l(m_mat__,n_mat__) = vals_r__[pos__++];
+            }
+        }
+        validate_non_negative_index("mmatrix_delta_l", "K_l", K_l);
+        validate_non_negative_index("mmatrix_delta_l", "get_base1(n_par,4,\"n_par\",1)", get_base1(n_par,4,"n_par",1));
+        context__.validate_dims("data initialization", "mmatrix_delta_l", "matrix_d", context__.to_vec(K_l,get_base1(n_par,4,"n_par",1)));
+        validate_non_negative_index("mmatrix_delta_l", "K_l", K_l);
+        validate_non_negative_index("mmatrix_delta_l", "get_base1(n_par,4,\"n_par\",1)", get_base1(n_par,4,"n_par",1));
+        mmatrix_delta_l = matrix_d(static_cast<Eigen::VectorXd::Index>(K_l),static_cast<Eigen::VectorXd::Index>(get_base1(n_par,4,"n_par",1)));
+        vals_r__ = context__.vals_r("mmatrix_delta_l");
+        pos__ = 0;
+        size_t mmatrix_delta_l_m_mat_lim__ = K_l;
+        size_t mmatrix_delta_l_n_mat_lim__ = get_base1(n_par,4,"n_par",1);
+        for (size_t n_mat__ = 0; n_mat__ < mmatrix_delta_l_n_mat_lim__; ++n_mat__) {
+            for (size_t m_mat__ = 0; m_mat__ < mmatrix_delta_l_m_mat_lim__; ++m_mat__) {
+                mmatrix_delta_l(m_mat__,n_mat__) = vals_r__[pos__++];
+            }
+        }
+
+        // validate, data variables
+        for (int k0__ = 0; k0__ < 4; ++k0__) {
+            check_greater_or_equal(function__,"n_par[k0__]",n_par[k0__],1);
+        }
+        for (int k0__ = 0; k0__ < 4; ++k0__) {
+            check_greater_or_equal(function__,"n_intercept[k0__]",n_intercept[k0__],1);
+        }
+        for (int k0__ = 0; k0__ < 4; ++k0__) {
+            check_greater_or_equal(function__,"n_other_pars[k0__]",n_other_pars[k0__],0);
+        }
+        check_greater_or_equal(function__,"K_u",K_u,1);
+        check_greater_or_equal(function__,"K_l",K_l,1);
+        // initialize data variables
+        nparams = int(0);
+        stan::math::fill(nparams, std::numeric_limits<int>::min());
+
+        try {
+            current_statement_begin__ = 29;
+            stan::math::assign(nparams, sum(n_par));
+        } catch (const std::exception& e) {
+            stan::lang::rethrow_located(e,current_statement_begin__);
+            // Next line prevents compiler griping about no return
+            throw std::runtime_error("*** IF YOU SEE THIS, PLEASE REPORT A BUG ***");
+        }
+
+        // validate transformed data
+
+        // validate, set parameter ranges
+        num_params_r__ = 0U;
+        param_ranges_i__.clear();
+        validate_non_negative_index("alpha", "get_base1(n_par,1,\"n_par\",1)", get_base1(n_par,1,"n_par",1));
+        num_params_r__ += get_base1(n_par,1,"n_par",1);
+        validate_non_negative_index("tau", "get_base1(n_par,2,\"n_par\",1)", get_base1(n_par,2,"n_par",1));
+        num_params_r__ += get_base1(n_par,2,"n_par",1);
+        validate_non_negative_index("beta", "get_base1(n_par,3,\"n_par\",1)", get_base1(n_par,3,"n_par",1));
+        num_params_r__ += get_base1(n_par,3,"n_par",1);
+        validate_non_negative_index("delta", "get_base1(n_par,4,\"n_par\",1)", get_base1(n_par,4,"n_par",1));
+        num_params_r__ += get_base1(n_par,4,"n_par",1);
+    }
+
+    ~model_wiener_fixed() { }
+
+
+    void transform_inits(const stan::io::var_context& context__,
+                         std::vector<int>& params_i__,
+                         std::vector<double>& params_r__,
+                         std::ostream* pstream__) const {
+        stan::io::writer<double> writer__(params_r__,params_i__);
+        size_t pos__;
+        (void) pos__; // dummy call to supress warning
+        std::vector<double> vals_r__;
+        std::vector<int> vals_i__;
+
+        if (!(context__.contains_r("alpha")))
+            throw std::runtime_error("variable alpha missing");
+        vals_r__ = context__.vals_r("alpha");
+        pos__ = 0U;
+        validate_non_negative_index("alpha", "get_base1(n_par,1,\"n_par\",1)", get_base1(n_par,1,"n_par",1));
+        context__.validate_dims("initialization", "alpha", "vector_d", context__.to_vec(get_base1(n_par,1,"n_par",1)));
+        // generate_declaration alpha
+        vector_d alpha(static_cast<Eigen::VectorXd::Index>(get_base1(n_par,1,"n_par",1)));
+        for (int j1__ = 0U; j1__ < get_base1(n_par,1,"n_par",1); ++j1__)
+            alpha(j1__) = vals_r__[pos__++];
+        try {
+            writer__.vector_unconstrain(alpha);
+        } catch (const std::exception& e) { 
+            throw std::runtime_error(std::string("Error transforming variable alpha: ") + e.what());
+        }
+
+        if (!(context__.contains_r("tau")))
+            throw std::runtime_error("variable tau missing");
+        vals_r__ = context__.vals_r("tau");
+        pos__ = 0U;
+        validate_non_negative_index("tau", "get_base1(n_par,2,\"n_par\",1)", get_base1(n_par,2,"n_par",1));
+        context__.validate_dims("initialization", "tau", "vector_d", context__.to_vec(get_base1(n_par,2,"n_par",1)));
+        // generate_declaration tau
+        vector_d tau(static_cast<Eigen::VectorXd::Index>(get_base1(n_par,2,"n_par",1)));
+        for (int j1__ = 0U; j1__ < get_base1(n_par,2,"n_par",1); ++j1__)
+            tau(j1__) = vals_r__[pos__++];
+        try {
+            writer__.vector_unconstrain(tau);
+        } catch (const std::exception& e) { 
+            throw std::runtime_error(std::string("Error transforming variable tau: ") + e.what());
+        }
+
+        if (!(context__.contains_r("beta")))
+            throw std::runtime_error("variable beta missing");
+        vals_r__ = context__.vals_r("beta");
+        pos__ = 0U;
+        validate_non_negative_index("beta", "get_base1(n_par,3,\"n_par\",1)", get_base1(n_par,3,"n_par",1));
+        context__.validate_dims("initialization", "beta", "vector_d", context__.to_vec(get_base1(n_par,3,"n_par",1)));
+        // generate_declaration beta
+        vector_d beta(static_cast<Eigen::VectorXd::Index>(get_base1(n_par,3,"n_par",1)));
+        for (int j1__ = 0U; j1__ < get_base1(n_par,3,"n_par",1); ++j1__)
+            beta(j1__) = vals_r__[pos__++];
+        try {
+            writer__.vector_unconstrain(beta);
+        } catch (const std::exception& e) { 
+            throw std::runtime_error(std::string("Error transforming variable beta: ") + e.what());
+        }
+
+        if (!(context__.contains_r("delta")))
+            throw std::runtime_error("variable delta missing");
+        vals_r__ = context__.vals_r("delta");
+        pos__ = 0U;
+        validate_non_negative_index("delta", "get_base1(n_par,4,\"n_par\",1)", get_base1(n_par,4,"n_par",1));
+        context__.validate_dims("initialization", "delta", "vector_d", context__.to_vec(get_base1(n_par,4,"n_par",1)));
+        // generate_declaration delta
+        vector_d delta(static_cast<Eigen::VectorXd::Index>(get_base1(n_par,4,"n_par",1)));
+        for (int j1__ = 0U; j1__ < get_base1(n_par,4,"n_par",1); ++j1__)
+            delta(j1__) = vals_r__[pos__++];
+        try {
+            writer__.vector_unconstrain(delta);
+        } catch (const std::exception& e) { 
+            throw std::runtime_error(std::string("Error transforming variable delta: ") + e.what());
+        }
+
+        params_r__ = writer__.data_r();
+        params_i__ = writer__.data_i();
+    }
+
+    void transform_inits(const stan::io::var_context& context,
+                         Eigen::Matrix<double,Eigen::Dynamic,1>& params_r,
+                         std::ostream* pstream__) const {
+      std::vector<double> params_r_vec;
+      std::vector<int> params_i_vec;
+      transform_inits(context, params_i_vec, params_r_vec, pstream__);
+      params_r.resize(params_r_vec.size());
+      for (int i = 0; i < params_r.size(); ++i)
+        params_r(i) = params_r_vec[i];
+    }
+
+
+    template <bool propto__, bool jacobian__, typename T__>
+    T__ log_prob(vector<T__>& params_r__,
+                 vector<int>& params_i__,
+                 std::ostream* pstream__ = 0) const {
+
+        T__ DUMMY_VAR__(std::numeric_limits<double>::quiet_NaN());
+        (void) DUMMY_VAR__;  // suppress unused var warning
+
+        T__ lp__(0.0);
+        stan::math::accumulator<T__> lp_accum__;
+
+        // model parameters
+        stan::io::reader<T__> in__(params_r__,params_i__);
+
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  alpha;
+        (void) alpha;  // dummy to suppress unused var warning
+        if (jacobian__)
+            alpha = in__.vector_constrain(get_base1(n_par,1,"n_par",1),lp__);
+        else
+            alpha = in__.vector_constrain(get_base1(n_par,1,"n_par",1));
+
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  tau;
+        (void) tau;  // dummy to suppress unused var warning
+        if (jacobian__)
+            tau = in__.vector_constrain(get_base1(n_par,2,"n_par",1),lp__);
+        else
+            tau = in__.vector_constrain(get_base1(n_par,2,"n_par",1));
+
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  beta;
+        (void) beta;  // dummy to suppress unused var warning
+        if (jacobian__)
+            beta = in__.vector_constrain(get_base1(n_par,3,"n_par",1),lp__);
+        else
+            beta = in__.vector_constrain(get_base1(n_par,3,"n_par",1));
+
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  delta;
+        (void) delta;  // dummy to suppress unused var warning
+        if (jacobian__)
+            delta = in__.vector_constrain(get_base1(n_par,4,"n_par",1),lp__);
+        else
+            delta = in__.vector_constrain(get_base1(n_par,4,"n_par",1));
+
+
+        // transformed parameters
+        validate_non_negative_index("alpha_u", "K_u", K_u);
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  alpha_u(static_cast<Eigen::VectorXd::Index>(K_u));
+        (void) alpha_u;  // dummy to suppress unused var warning
+
+        stan::math::initialize(alpha_u, DUMMY_VAR__);
+        stan::math::fill(alpha_u,DUMMY_VAR__);
+        validate_non_negative_index("tau_u", "K_u", K_u);
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  tau_u(static_cast<Eigen::VectorXd::Index>(K_u));
+        (void) tau_u;  // dummy to suppress unused var warning
+
+        stan::math::initialize(tau_u, DUMMY_VAR__);
+        stan::math::fill(tau_u,DUMMY_VAR__);
+        validate_non_negative_index("beta_u", "K_u", K_u);
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  beta_u(static_cast<Eigen::VectorXd::Index>(K_u));
+        (void) beta_u;  // dummy to suppress unused var warning
+
+        stan::math::initialize(beta_u, DUMMY_VAR__);
+        stan::math::fill(beta_u,DUMMY_VAR__);
+        validate_non_negative_index("delta_u", "K_u", K_u);
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  delta_u(static_cast<Eigen::VectorXd::Index>(K_u));
+        (void) delta_u;  // dummy to suppress unused var warning
+
+        stan::math::initialize(delta_u, DUMMY_VAR__);
+        stan::math::fill(delta_u,DUMMY_VAR__);
+        validate_non_negative_index("alpha_l", "K_l", K_l);
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  alpha_l(static_cast<Eigen::VectorXd::Index>(K_l));
+        (void) alpha_l;  // dummy to suppress unused var warning
+
+        stan::math::initialize(alpha_l, DUMMY_VAR__);
+        stan::math::fill(alpha_l,DUMMY_VAR__);
+        validate_non_negative_index("tau_l", "K_l", K_l);
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  tau_l(static_cast<Eigen::VectorXd::Index>(K_l));
+        (void) tau_l;  // dummy to suppress unused var warning
+
+        stan::math::initialize(tau_l, DUMMY_VAR__);
+        stan::math::fill(tau_l,DUMMY_VAR__);
+        validate_non_negative_index("beta_l", "K_l", K_l);
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  beta_l(static_cast<Eigen::VectorXd::Index>(K_l));
+        (void) beta_l;  // dummy to suppress unused var warning
+
+        stan::math::initialize(beta_l, DUMMY_VAR__);
+        stan::math::fill(beta_l,DUMMY_VAR__);
+        validate_non_negative_index("delta_l", "K_l", K_l);
+        Eigen::Matrix<T__,Eigen::Dynamic,1>  delta_l(static_cast<Eigen::VectorXd::Index>(K_l));
+        (void) delta_l;  // dummy to suppress unused var warning
+
+        stan::math::initialize(delta_l, DUMMY_VAR__);
+        stan::math::fill(delta_l,DUMMY_VAR__);
+
+
+        try {
+            current_statement_begin__ = 59;
+            stan::math::assign(alpha_u, multiply(mmatrix_alpha_u,alpha));
+            current_statement_begin__ = 60;
+            stan::math::assign(alpha_l, multiply(mmatrix_alpha_l,alpha));
+            current_statement_begin__ = 62;
+            stan::math::assign(tau_u, multiply(mmatrix_tau_u,tau));
+            current_statement_begin__ = 63;
+            stan::math::assign(tau_l, multiply(mmatrix_tau_l,tau));
+            current_statement_begin__ = 65;
+            stan::math::assign(beta_u, multiply(mmatrix_beta_u,beta));
+            current_statement_begin__ = 66;
+            stan::math::assign(beta_l, multiply(mmatrix_beta_l,beta));
+            current_statement_begin__ = 68;
+            stan::math::assign(delta_u, multiply(mmatrix_delta_u,delta));
+            current_statement_begin__ = 69;
+            stan::math::assign(delta_l, multiply(mmatrix_delta_l,delta));
+        } catch (const std::exception& e) {
+            stan::lang::rethrow_located(e,current_statement_begin__);
+            // Next line prevents compiler griping about no return
+            throw std::runtime_error("*** IF YOU SEE THIS, PLEASE REPORT A BUG ***");
+        }
+
+        // validate transformed parameters
+        for (int i0__ = 0; i0__ < K_u; ++i0__) {
+            if (stan::math::is_uninitialized(alpha_u(i0__))) {
+                std::stringstream msg__;
+                msg__ << "Undefined transformed parameter: alpha_u" << '[' << i0__ << ']';
+                throw std::runtime_error(msg__.str());
+            }
+        }
+        for (int i0__ = 0; i0__ < K_u; ++i0__) {
+            if (stan::math::is_uninitialized(tau_u(i0__))) {
+                std::stringstream msg__;
+                msg__ << "Undefined transformed parameter: tau_u" << '[' << i0__ << ']';
+                throw std::runtime_error(msg__.str());
+            }
+        }
+        for (int i0__ = 0; i0__ < K_u; ++i0__) {
+            if (stan::math::is_uninitialized(beta_u(i0__))) {
+                std::stringstream msg__;
+                msg__ << "Undefined transformed parameter: beta_u" << '[' << i0__ << ']';
+                throw std::runtime_error(msg__.str());
+            }
+        }
+        for (int i0__ = 0; i0__ < K_u; ++i0__) {
+            if (stan::math::is_uninitialized(delta_u(i0__))) {
+                std::stringstream msg__;
+                msg__ << "Undefined transformed parameter: delta_u" << '[' << i0__ << ']';
+                throw std::runtime_error(msg__.str());
+            }
+        }
+        for (int i0__ = 0; i0__ < K_l; ++i0__) {
+            if (stan::math::is_uninitialized(alpha_l(i0__))) {
+                std::stringstream msg__;
+                msg__ << "Undefined transformed parameter: alpha_l" << '[' << i0__ << ']';
+                throw std::runtime_error(msg__.str());
+            }
+        }
+        for (int i0__ = 0; i0__ < K_l; ++i0__) {
+            if (stan::math::is_uninitialized(tau_l(i0__))) {
+                std::stringstream msg__;
+                msg__ << "Undefined transformed parameter: tau_l" << '[' << i0__ << ']';
+                throw std::runtime_error(msg__.str());
+            }
+        }
+        for (int i0__ = 0; i0__ < K_l; ++i0__) {
+            if (stan::math::is_uninitialized(beta_l(i0__))) {
+                std::stringstream msg__;
+                msg__ << "Undefined transformed parameter: beta_l" << '[' << i0__ << ']';
+                throw std::runtime_error(msg__.str());
+            }
+        }
+        for (int i0__ = 0; i0__ < K_l; ++i0__) {
+            if (stan::math::is_uninitialized(delta_l(i0__))) {
+                std::stringstream msg__;
+                msg__ << "Undefined transformed parameter: delta_l" << '[' << i0__ << ']';
+                throw std::runtime_error(msg__.str());
+            }
+        }
+
+        const char* function__ = "validate transformed params";
+        (void) function__;  // dummy to suppress unused var warning
+        check_greater_or_equal(function__,"alpha_u",alpha_u,0);
+        check_greater_or_equal(function__,"tau_u",tau_u,0);
+        check_greater_or_equal(function__,"beta_u",beta_u,0);
+        check_less_or_equal(function__,"beta_u",beta_u,1);
+        check_greater_or_equal(function__,"alpha_l",alpha_l,0);
+        check_greater_or_equal(function__,"tau_l",tau_l,0);
+        check_greater_or_equal(function__,"beta_l",beta_l,0);
+        check_less_or_equal(function__,"beta_l",beta_l,1);
+
+        // model body
+        try {
+
+            current_statement_begin__ = 76;
+            lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(1), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,1,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "alpha"), 1, 2));
+            current_statement_begin__ = 77;
+            if (as_bool(logical_gt(get_base1(n_other_pars,1,"n_other_pars",1),0))) {
+                current_statement_begin__ = 78;
+                lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(1), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,1,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "alpha"), 0, 1));
+            }
+            current_statement_begin__ = 80;
+            lp_accum__.add(normal_log<propto__>(stan::model::rvalue(tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(2), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,2,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "tau"), 0.20000000000000001, 0.20000000000000001));
+            current_statement_begin__ = 81;
+            if (as_bool(logical_gt(get_base1(n_other_pars,2,"n_other_pars",1),0))) {
+                current_statement_begin__ = 82;
+                lp_accum__.add(normal_log<propto__>(stan::model::rvalue(tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(2), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,2,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "tau"), 0, 0.20000000000000001));
+            }
+            current_statement_begin__ = 84;
+            lp_accum__.add(normal_log<propto__>(stan::model::rvalue(beta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(3), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,3,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "beta"), 0.5, 0.5));
+            current_statement_begin__ = 85;
+            if (as_bool(logical_gt(get_base1(n_other_pars,3,"n_other_pars",1),0))) {
+                current_statement_begin__ = 86;
+                lp_accum__.add(normal_log<propto__>(stan::model::rvalue(beta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(3), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,3,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "beta"), 0, 0.5));
+            }
+            current_statement_begin__ = 88;
+            lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(4), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,4,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "delta"), 0, 3));
+            current_statement_begin__ = 89;
+            if (as_bool(logical_gt(get_base1(n_other_pars,4,"n_other_pars",1),0))) {
+                current_statement_begin__ = 90;
+                lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(4), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,4,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "delta"), 0, 2));
+            }
+            current_statement_begin__ = 92;
+            lp_accum__.add(wiener_log<propto__>(Y_u, alpha_u, tau_u, beta_u, delta_u));
+            current_statement_begin__ = 93;
+            lp_accum__.add(wiener_log<propto__>(Y_l, alpha_l, tau_l, subtract(1,beta_l), minus(delta_l)));
+        } catch (const std::exception& e) {
+            stan::lang::rethrow_located(e,current_statement_begin__);
+            // Next line prevents compiler griping about no return
+            throw std::runtime_error("*** IF YOU SEE THIS, PLEASE REPORT A BUG ***");
+        }
+
+        lp_accum__.add(lp__);
+        return lp_accum__.sum();
+
+    } // log_prob()
+
+    template <bool propto, bool jacobian, typename T_>
+    T_ log_prob(Eigen::Matrix<T_,Eigen::Dynamic,1>& params_r,
+               std::ostream* pstream = 0) const {
+      std::vector<T_> vec_params_r;
+      vec_params_r.reserve(params_r.size());
+      for (int i = 0; i < params_r.size(); ++i)
+        vec_params_r.push_back(params_r(i));
+      std::vector<int> vec_params_i;
+      return log_prob<propto,jacobian,T_>(vec_params_r, vec_params_i, pstream);
+    }
+
+
+    void get_param_names(std::vector<std::string>& names__) const {
+        names__.resize(0);
+        names__.push_back("alpha");
+        names__.push_back("tau");
+        names__.push_back("beta");
+        names__.push_back("delta");
+        names__.push_back("alpha_u");
+        names__.push_back("tau_u");
+        names__.push_back("beta_u");
+        names__.push_back("delta_u");
+        names__.push_back("alpha_l");
+        names__.push_back("tau_l");
+        names__.push_back("beta_l");
+        names__.push_back("delta_l");
+    }
+
+
+    void get_dims(std::vector<std::vector<size_t> >& dimss__) const {
+        dimss__.resize(0);
+        std::vector<size_t> dims__;
+        dims__.resize(0);
+        dims__.push_back(get_base1(n_par,1,"n_par",1));
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(get_base1(n_par,2,"n_par",1));
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(get_base1(n_par,3,"n_par",1));
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(get_base1(n_par,4,"n_par",1));
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(K_u);
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(K_u);
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(K_u);
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(K_u);
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(K_l);
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(K_l);
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(K_l);
+        dimss__.push_back(dims__);
+        dims__.resize(0);
+        dims__.push_back(K_l);
+        dimss__.push_back(dims__);
+    }
+
+    template <typename RNG>
+    void write_array(RNG& base_rng__,
+                     std::vector<double>& params_r__,
+                     std::vector<int>& params_i__,
+                     std::vector<double>& vars__,
+                     bool include_tparams__ = true,
+                     bool include_gqs__ = true,
+                     std::ostream* pstream__ = 0) const {
+        vars__.resize(0);
+        stan::io::reader<double> in__(params_r__,params_i__);
+        static const char* function__ = "model_wiener_fixed_namespace::write_array";
+        (void) function__;  // dummy to suppress unused var warning
+        // read-transform, write parameters
+        vector_d alpha = in__.vector_constrain(get_base1(n_par,1,"n_par",1));
+        vector_d tau = in__.vector_constrain(get_base1(n_par,2,"n_par",1));
+        vector_d beta = in__.vector_constrain(get_base1(n_par,3,"n_par",1));
+        vector_d delta = in__.vector_constrain(get_base1(n_par,4,"n_par",1));
+        for (int k_0__ = 0; k_0__ < get_base1(n_par,1,"n_par",1); ++k_0__) {
+            vars__.push_back(alpha[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < get_base1(n_par,2,"n_par",1); ++k_0__) {
+            vars__.push_back(tau[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < get_base1(n_par,3,"n_par",1); ++k_0__) {
+            vars__.push_back(beta[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < get_base1(n_par,4,"n_par",1); ++k_0__) {
+            vars__.push_back(delta[k_0__]);
+        }
+
+        if (!include_tparams__) return;
+        // declare and define transformed parameters
+        double lp__ = 0.0;
+        (void) lp__;  // dummy to suppress unused var warning
+        stan::math::accumulator<double> lp_accum__;
+
+        double DUMMY_VAR__(std::numeric_limits<double>::quiet_NaN());
+        (void) DUMMY_VAR__;  // suppress unused var warning
+
+        validate_non_negative_index("alpha_u", "K_u", K_u);
+        vector_d alpha_u(static_cast<Eigen::VectorXd::Index>(K_u));
+        (void) alpha_u;  // dummy to suppress unused var warning
+
+        stan::math::initialize(alpha_u, std::numeric_limits<double>::quiet_NaN());
+        stan::math::fill(alpha_u,DUMMY_VAR__);
+        validate_non_negative_index("tau_u", "K_u", K_u);
+        vector_d tau_u(static_cast<Eigen::VectorXd::Index>(K_u));
+        (void) tau_u;  // dummy to suppress unused var warning
+
+        stan::math::initialize(tau_u, std::numeric_limits<double>::quiet_NaN());
+        stan::math::fill(tau_u,DUMMY_VAR__);
+        validate_non_negative_index("beta_u", "K_u", K_u);
+        vector_d beta_u(static_cast<Eigen::VectorXd::Index>(K_u));
+        (void) beta_u;  // dummy to suppress unused var warning
+
+        stan::math::initialize(beta_u, std::numeric_limits<double>::quiet_NaN());
+        stan::math::fill(beta_u,DUMMY_VAR__);
+        validate_non_negative_index("delta_u", "K_u", K_u);
+        vector_d delta_u(static_cast<Eigen::VectorXd::Index>(K_u));
+        (void) delta_u;  // dummy to suppress unused var warning
+
+        stan::math::initialize(delta_u, std::numeric_limits<double>::quiet_NaN());
+        stan::math::fill(delta_u,DUMMY_VAR__);
+        validate_non_negative_index("alpha_l", "K_l", K_l);
+        vector_d alpha_l(static_cast<Eigen::VectorXd::Index>(K_l));
+        (void) alpha_l;  // dummy to suppress unused var warning
+
+        stan::math::initialize(alpha_l, std::numeric_limits<double>::quiet_NaN());
+        stan::math::fill(alpha_l,DUMMY_VAR__);
+        validate_non_negative_index("tau_l", "K_l", K_l);
+        vector_d tau_l(static_cast<Eigen::VectorXd::Index>(K_l));
+        (void) tau_l;  // dummy to suppress unused var warning
+
+        stan::math::initialize(tau_l, std::numeric_limits<double>::quiet_NaN());
+        stan::math::fill(tau_l,DUMMY_VAR__);
+        validate_non_negative_index("beta_l", "K_l", K_l);
+        vector_d beta_l(static_cast<Eigen::VectorXd::Index>(K_l));
+        (void) beta_l;  // dummy to suppress unused var warning
+
+        stan::math::initialize(beta_l, std::numeric_limits<double>::quiet_NaN());
+        stan::math::fill(beta_l,DUMMY_VAR__);
+        validate_non_negative_index("delta_l", "K_l", K_l);
+        vector_d delta_l(static_cast<Eigen::VectorXd::Index>(K_l));
+        (void) delta_l;  // dummy to suppress unused var warning
+
+        stan::math::initialize(delta_l, std::numeric_limits<double>::quiet_NaN());
+        stan::math::fill(delta_l,DUMMY_VAR__);
+
+
+        try {
+            current_statement_begin__ = 59;
+            stan::math::assign(alpha_u, multiply(mmatrix_alpha_u,alpha));
+            current_statement_begin__ = 60;
+            stan::math::assign(alpha_l, multiply(mmatrix_alpha_l,alpha));
+            current_statement_begin__ = 62;
+            stan::math::assign(tau_u, multiply(mmatrix_tau_u,tau));
+            current_statement_begin__ = 63;
+            stan::math::assign(tau_l, multiply(mmatrix_tau_l,tau));
+            current_statement_begin__ = 65;
+            stan::math::assign(beta_u, multiply(mmatrix_beta_u,beta));
+            current_statement_begin__ = 66;
+            stan::math::assign(beta_l, multiply(mmatrix_beta_l,beta));
+            current_statement_begin__ = 68;
+            stan::math::assign(delta_u, multiply(mmatrix_delta_u,delta));
+            current_statement_begin__ = 69;
+            stan::math::assign(delta_l, multiply(mmatrix_delta_l,delta));
+        } catch (const std::exception& e) {
+            stan::lang::rethrow_located(e,current_statement_begin__);
+            // Next line prevents compiler griping about no return
+            throw std::runtime_error("*** IF YOU SEE THIS, PLEASE REPORT A BUG ***");
+        }
+
+        // validate transformed parameters
+        check_greater_or_equal(function__,"alpha_u",alpha_u,0);
+        check_greater_or_equal(function__,"tau_u",tau_u,0);
+        check_greater_or_equal(function__,"beta_u",beta_u,0);
+        check_less_or_equal(function__,"beta_u",beta_u,1);
+        check_greater_or_equal(function__,"alpha_l",alpha_l,0);
+        check_greater_or_equal(function__,"tau_l",tau_l,0);
+        check_greater_or_equal(function__,"beta_l",beta_l,0);
+        check_less_or_equal(function__,"beta_l",beta_l,1);
+
+        // write transformed parameters
+        for (int k_0__ = 0; k_0__ < K_u; ++k_0__) {
+            vars__.push_back(alpha_u[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < K_u; ++k_0__) {
+            vars__.push_back(tau_u[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < K_u; ++k_0__) {
+            vars__.push_back(beta_u[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < K_u; ++k_0__) {
+            vars__.push_back(delta_u[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < K_l; ++k_0__) {
+            vars__.push_back(alpha_l[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < K_l; ++k_0__) {
+            vars__.push_back(tau_l[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < K_l; ++k_0__) {
+            vars__.push_back(beta_l[k_0__]);
+        }
+        for (int k_0__ = 0; k_0__ < K_l; ++k_0__) {
+            vars__.push_back(delta_l[k_0__]);
+        }
+
+        if (!include_gqs__) return;
+        // declare and define generated quantities
+
+
+        try {
+        } catch (const std::exception& e) {
+            stan::lang::rethrow_located(e,current_statement_begin__);
+            // Next line prevents compiler griping about no return
+            throw std::runtime_error("*** IF YOU SEE THIS, PLEASE REPORT A BUG ***");
+        }
+
+        // validate generated quantities
+
+        // write generated quantities
+    }
+
+    template <typename RNG>
+    void write_array(RNG& base_rng,
+                     Eigen::Matrix<double,Eigen::Dynamic,1>& params_r,
+                     Eigen::Matrix<double,Eigen::Dynamic,1>& vars,
+                     bool include_tparams = true,
+                     bool include_gqs = true,
+                     std::ostream* pstream = 0) const {
+      std::vector<double> params_r_vec(params_r.size());
+      for (int i = 0; i < params_r.size(); ++i)
+        params_r_vec[i] = params_r(i);
+      std::vector<double> vars_vec;
+      std::vector<int> params_i_vec;
+      write_array(base_rng,params_r_vec,params_i_vec,vars_vec,include_tparams,include_gqs,pstream);
+      vars.resize(vars_vec.size());
+      for (int i = 0; i < vars.size(); ++i)
+        vars(i) = vars_vec[i];
+    }
+
+    static std::string model_name() {
+        return "model_wiener_fixed";
+    }
+
+
+    void constrained_param_names(std::vector<std::string>& param_names__,
+                                 bool include_tparams__ = true,
+                                 bool include_gqs__ = true) const {
+        std::stringstream param_name_stream__;
+        for (int k_0__ = 1; k_0__ <= get_base1(n_par,1,"n_par",1); ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "alpha" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= get_base1(n_par,2,"n_par",1); ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "tau" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= get_base1(n_par,3,"n_par",1); ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "beta" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= get_base1(n_par,4,"n_par",1); ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "delta" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+
+        if (!include_gqs__ && !include_tparams__) return;
+        for (int k_0__ = 1; k_0__ <= K_u; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "alpha_u" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_u; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "tau_u" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_u; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "beta_u" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_u; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "delta_u" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_l; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "alpha_l" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_l; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "tau_l" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_l; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "beta_l" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_l; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "delta_l" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+
+        if (!include_gqs__) return;
+    }
+
+
+    void unconstrained_param_names(std::vector<std::string>& param_names__,
+                                   bool include_tparams__ = true,
+                                   bool include_gqs__ = true) const {
+        std::stringstream param_name_stream__;
+        for (int k_0__ = 1; k_0__ <= get_base1(n_par,1,"n_par",1); ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "alpha" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= get_base1(n_par,2,"n_par",1); ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "tau" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= get_base1(n_par,3,"n_par",1); ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "beta" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= get_base1(n_par,4,"n_par",1); ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "delta" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+
+        if (!include_gqs__ && !include_tparams__) return;
+        for (int k_0__ = 1; k_0__ <= K_u; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "alpha_u" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_u; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "tau_u" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_u; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "beta_u" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_u; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "delta_u" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_l; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "alpha_l" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_l; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "tau_l" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_l; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "beta_l" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+        for (int k_0__ = 1; k_0__ <= K_l; ++k_0__) {
+            param_name_stream__.str(std::string());
+            param_name_stream__ << "delta_l" << '.' << k_0__;
+            param_names__.push_back(param_name_stream__.str());
+        }
+
+        if (!include_gqs__) return;
+    }
+
+}; // model
+
+}
+
+
+
+
+// Code generated by Stan version 2.15.0
+
+#include <stan/model/model_header.hpp>
+
 namespace model_wiener_hierarch_within_namespace {
 
 using std::istream;
@@ -355,6 +1410,7 @@ public:
         stan::math::fill(nparams, std::numeric_limits<int>::min());
 
         try {
+            current_statement_begin__ = 29;
             stan::math::assign(nparams, sum(n_par));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -652,37 +1708,47 @@ public:
 
 
         try {
+            current_statement_begin__ = 57;
             stan::math::assign(deltahat, multiply(diag_pre_multiply(sigma,L_Omega),deltahat_tilde));
+            current_statement_begin__ = 59;
             for (int i = 1; i <= N; ++i) {
 
+                current_statement_begin__ = 60;
                 stan::model::assign(alpha_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha_u"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_u");
+                current_statement_begin__ = 61;
                 stan::model::assign(alpha_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha_l"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_l");
+                current_statement_begin__ = 63;
                 stan::model::assign(tau_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau_u"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((get_base1(n_par,1,"n_par",1) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_u");
+                current_statement_begin__ = 64;
                 stan::model::assign(tau_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau_l"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((get_base1(n_par,1,"n_par",1) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_l");
+                current_statement_begin__ = 66;
                 stan::model::assign(beta_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_beta_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_beta_u"),add(beta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable beta_u");
+                current_statement_begin__ = 67;
                 stan::model::assign(beta_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_beta_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_beta_l"),add(beta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable beta_l");
+                current_statement_begin__ = 69;
                 stan::model::assign(delta_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta_u"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 4), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable delta_u");
+                current_statement_begin__ = 70;
                 stan::model::assign(delta_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta_l"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 4), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
@@ -775,26 +1841,43 @@ public:
         // model body
         try {
 
+            current_statement_begin__ = 74;
             lp_accum__.add(lkj_corr_cholesky_log<propto__>(L_Omega, 1));
+            current_statement_begin__ = 75;
             lp_accum__.add(cauchy_log<propto__>(sigma, 0, 4));
+            current_statement_begin__ = 76;
             lp_accum__.add(normal_log<propto__>(to_vector(deltahat_tilde), 0, 1));
+            current_statement_begin__ = 78;
             lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(1), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,1,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "alpha"), 1, 2));
+            current_statement_begin__ = 79;
             if (as_bool(logical_gt(get_base1(n_other_pars,1,"n_other_pars",1),0))) {
+                current_statement_begin__ = 80;
                 lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(1), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,1,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "alpha"), 0, 1));
             }
+            current_statement_begin__ = 82;
             lp_accum__.add(normal_log<propto__>(stan::model::rvalue(tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(2), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,2,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "tau"), 0.20000000000000001, 0.20000000000000001));
+            current_statement_begin__ = 83;
             if (as_bool(logical_gt(get_base1(n_other_pars,2,"n_other_pars",1),0))) {
+                current_statement_begin__ = 84;
                 lp_accum__.add(normal_log<propto__>(stan::model::rvalue(tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(2), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,2,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "tau"), 0, 0.20000000000000001));
             }
+            current_statement_begin__ = 86;
             lp_accum__.add(normal_log<propto__>(stan::model::rvalue(beta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(3), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,3,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "beta"), 0.5, 0.5));
+            current_statement_begin__ = 87;
             if (as_bool(logical_gt(get_base1(n_other_pars,3,"n_other_pars",1),0))) {
+                current_statement_begin__ = 88;
                 lp_accum__.add(normal_log<propto__>(stan::model::rvalue(beta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(3), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,3,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "beta"), 0, 0.5));
             }
+            current_statement_begin__ = 90;
             lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(4), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,4,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "delta"), 1, 2));
+            current_statement_begin__ = 91;
             if (as_bool(logical_gt(get_base1(n_other_pars,4,"n_other_pars",1),0))) {
+                current_statement_begin__ = 92;
                 lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(4), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,4,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "delta"), 0, 2));
             }
+            current_statement_begin__ = 94;
             lp_accum__.add(wiener_log<propto__>(Y_u, alpha_u, tau_u, beta_u, delta_u));
+            current_statement_begin__ = 95;
             lp_accum__.add(wiener_log<propto__>(Y_l, alpha_l, tau_l, subtract(1,beta_l), minus(delta_l)));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -1014,37 +2097,47 @@ public:
 
 
         try {
+            current_statement_begin__ = 57;
             stan::math::assign(deltahat, multiply(diag_pre_multiply(sigma,L_Omega),deltahat_tilde));
+            current_statement_begin__ = 59;
             for (int i = 1; i <= N; ++i) {
 
+                current_statement_begin__ = 60;
                 stan::model::assign(alpha_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha_u"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_u");
+                current_statement_begin__ = 61;
                 stan::model::assign(alpha_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha_l"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_l");
+                current_statement_begin__ = 63;
                 stan::model::assign(tau_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau_u"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((get_base1(n_par,1,"n_par",1) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_u");
+                current_statement_begin__ = 64;
                 stan::model::assign(tau_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau_l"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((get_base1(n_par,1,"n_par",1) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_l");
+                current_statement_begin__ = 66;
                 stan::model::assign(beta_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_beta_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_beta_u"),add(beta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable beta_u");
+                current_statement_begin__ = 67;
                 stan::model::assign(beta_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_beta_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_beta_l"),add(beta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable beta_l");
+                current_statement_begin__ = 69;
                 stan::model::assign(delta_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta_u"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 4), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable delta_u");
+                current_statement_begin__ = 70;
                 stan::model::assign(delta_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta_l"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 4), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
@@ -1108,6 +2201,7 @@ public:
 
 
         try {
+            current_statement_begin__ = 106;
             stan::math::assign(Omega, multiply_lower_tri_self_transpose(L_Omega));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -1814,12 +2908,19 @@ public:
         stan::math::fill(param_bounds_delta, std::numeric_limits<int>::min());
 
         try {
+            current_statement_begin__ = 38;
             stan::math::assign(nparams, sum(n_par));
+            current_statement_begin__ = 39;
             stan::math::assign(get_base1_lhs(param_bounds_tau,1,"param_bounds_tau",1), (get_base1(n_par,1,"n_par",1) + 1));
+            current_statement_begin__ = 40;
             stan::math::assign(get_base1_lhs(param_bounds_tau,2,"param_bounds_tau",1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par")));
+            current_statement_begin__ = 41;
             stan::math::assign(get_base1_lhs(param_bounds_beta,1,"param_bounds_beta",1), (sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par")) + 1));
+            current_statement_begin__ = 42;
             stan::math::assign(get_base1_lhs(param_bounds_beta,2,"param_bounds_beta",1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")));
+            current_statement_begin__ = 43;
             stan::math::assign(get_base1_lhs(param_bounds_delta,1,"param_bounds_delta",1), (sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")) + 1));
+            current_statement_begin__ = 44;
             stan::math::assign(get_base1_lhs(param_bounds_delta,2,"param_bounds_delta",1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 4), stan::model::nil_index_list()), "n_par")));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -2105,27 +3206,35 @@ public:
 
 
         try {
+            current_statement_begin__ = 72;
             stan::math::assign(deltahat, multiply(diag_pre_multiply(sigma,L_Omega),deltahat_tilde));
+            current_statement_begin__ = 75;
             for (int i = 1; i <= N; ++i) {
 
+                current_statement_begin__ = 76;
                 stan::model::assign(alpha_pred_indiv, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),1,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),2,"p_boundaries_2",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(mmatrix_alpha_indiv, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),1,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),2,"p_boundaries_2",2)), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "mmatrix_alpha_indiv")), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_pred_indiv");
+                current_statement_begin__ = 79;
                 stan::model::assign(tau_pred_indiv, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),3,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),4,"p_boundaries_2",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(mmatrix_tau_indiv, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),3,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),4,"p_boundaries_2",2)), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "mmatrix_tau_indiv")), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(get_base1(param_bounds_tau,1,"param_bounds_tau",1), get_base1(param_bounds_tau,2,"param_bounds_tau",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_pred_indiv");
+                current_statement_begin__ = 82;
                 stan::model::assign(beta_pred_indiv, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),5,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),6,"p_boundaries_2",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_beta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(mmatrix_beta_indiv, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),5,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),6,"p_boundaries_2",2)), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "mmatrix_beta_indiv")), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_beta"),add(beta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(get_base1(param_bounds_beta,1,"param_bounds_beta",1), get_base1(param_bounds_beta,2,"param_bounds_beta",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable beta_pred_indiv");
+                current_statement_begin__ = 85;
                 stan::model::assign(delta_pred_indiv, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),7,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),8,"p_boundaries_2",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(mmatrix_delta_indiv, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),7,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),8,"p_boundaries_2",2)), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "mmatrix_delta_indiv")), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(get_base1(param_bounds_delta,1,"param_bounds_delta",1), get_base1(param_bounds_delta,2,"param_bounds_delta",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable delta_pred_indiv");
             }
+            current_statement_begin__ = 89;
             stan::math::assign(beta_pred_indiv_lower, subtract(1,beta_pred_indiv));
+            current_statement_begin__ = 90;
             stan::math::assign(delta_pred_indiv_lower, minus(delta_pred_indiv));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -2198,26 +3307,43 @@ public:
         // model body
         try {
 
+            current_statement_begin__ = 93;
             lp_accum__.add(lkj_corr_cholesky_log<propto__>(L_Omega, 1));
+            current_statement_begin__ = 94;
             lp_accum__.add(cauchy_log<propto__>(sigma, 0, 4));
+            current_statement_begin__ = 95;
             lp_accum__.add(normal_log<propto__>(to_vector(deltahat_tilde), 0, 1));
+            current_statement_begin__ = 97;
             lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(1), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,1,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "alpha"), 1, 2));
+            current_statement_begin__ = 98;
             if (as_bool(logical_gt(get_base1(n_other_pars,1,"n_other_pars",1),0))) {
+                current_statement_begin__ = 99;
                 lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(1), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,1,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "alpha"), 0, 1));
             }
+            current_statement_begin__ = 101;
             lp_accum__.add(normal_log<propto__>(stan::model::rvalue(tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(2), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,2,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "tau"), 0.20000000000000001, 0.20000000000000001));
+            current_statement_begin__ = 102;
             if (as_bool(logical_gt(get_base1(n_other_pars,2,"n_other_pars",1),0))) {
+                current_statement_begin__ = 103;
                 lp_accum__.add(normal_log<propto__>(stan::model::rvalue(tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(2), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,2,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "tau"), 0, 0.20000000000000001));
             }
+            current_statement_begin__ = 105;
             lp_accum__.add(normal_log<propto__>(stan::model::rvalue(beta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(3), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,3,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "beta"), 0.5, 0.5));
+            current_statement_begin__ = 106;
             if (as_bool(logical_gt(get_base1(n_other_pars,3,"n_other_pars",1),0))) {
+                current_statement_begin__ = 107;
                 lp_accum__.add(normal_log<propto__>(stan::model::rvalue(beta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(3), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,3,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "beta"), 0, 0.5));
             }
+            current_statement_begin__ = 109;
             lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(4), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,4,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "delta"), 1, 2));
+            current_statement_begin__ = 110;
             if (as_bool(logical_gt(get_base1(n_other_pars,4,"n_other_pars",1),0))) {
+                current_statement_begin__ = 111;
                 lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(4), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,4,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "delta"), 0, 2));
             }
+            current_statement_begin__ = 113;
             lp_accum__.add(wiener_log<propto__>(stan::model::rvalue(data_u, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(3), stan::model::nil_index_list())), "data_u"), stan::model::rvalue(alpha_pred_indiv, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(map_u, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(1), stan::model::nil_index_list())), "map_u")), stan::model::nil_index_list()), "alpha_pred_indiv"), stan::model::rvalue(tau_pred_indiv, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(map_u, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "map_u")), stan::model::nil_index_list()), "tau_pred_indiv"), stan::model::rvalue(beta_pred_indiv, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(map_u, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(3), stan::model::nil_index_list())), "map_u")), stan::model::nil_index_list()), "beta_pred_indiv"), stan::model::rvalue(delta_pred_indiv, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(map_u, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(4), stan::model::nil_index_list())), "map_u")), stan::model::nil_index_list()), "delta_pred_indiv")));
+            current_statement_begin__ = 118;
             lp_accum__.add(wiener_log<propto__>(stan::model::rvalue(data_l, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(3), stan::model::nil_index_list())), "data_l"), stan::model::rvalue(alpha_pred_indiv, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(map_l, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(1), stan::model::nil_index_list())), "map_l")), stan::model::nil_index_list()), "alpha_pred_indiv"), stan::model::rvalue(tau_pred_indiv, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(map_l, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "map_l")), stan::model::nil_index_list()), "tau_pred_indiv"), stan::model::rvalue(beta_pred_indiv_lower, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(map_l, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(3), stan::model::nil_index_list())), "map_l")), stan::model::nil_index_list()), "beta_pred_indiv_lower"), stan::model::rvalue(delta_pred_indiv_lower, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(map_l, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(4), stan::model::nil_index_list())), "map_l")), stan::model::nil_index_list()), "delta_pred_indiv_lower")));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -2417,27 +3543,35 @@ public:
 
 
         try {
+            current_statement_begin__ = 72;
             stan::math::assign(deltahat, multiply(diag_pre_multiply(sigma,L_Omega),deltahat_tilde));
+            current_statement_begin__ = 75;
             for (int i = 1; i <= N; ++i) {
 
+                current_statement_begin__ = 76;
                 stan::model::assign(alpha_pred_indiv, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),1,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),2,"p_boundaries_2",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(mmatrix_alpha_indiv, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),1,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),2,"p_boundaries_2",2)), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "mmatrix_alpha_indiv")), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_pred_indiv");
+                current_statement_begin__ = 79;
                 stan::model::assign(tau_pred_indiv, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),3,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),4,"p_boundaries_2",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(mmatrix_tau_indiv, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),3,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),4,"p_boundaries_2",2)), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "mmatrix_tau_indiv")), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(get_base1(param_bounds_tau,1,"param_bounds_tau",1), get_base1(param_bounds_tau,2,"param_bounds_tau",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_pred_indiv");
+                current_statement_begin__ = 82;
                 stan::model::assign(beta_pred_indiv, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),5,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),6,"p_boundaries_2",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_beta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(mmatrix_beta_indiv, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),5,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),6,"p_boundaries_2",2)), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "mmatrix_beta_indiv")), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_beta"),add(beta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(get_base1(param_bounds_beta,1,"param_bounds_beta",1), get_base1(param_bounds_beta,2,"param_bounds_beta",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable beta_pred_indiv");
+                current_statement_begin__ = 85;
                 stan::model::assign(delta_pred_indiv, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),7,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),8,"p_boundaries_2",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(mmatrix_delta_indiv, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),7,"p_boundaries_2",2), get_base1(get_base1(p_boundaries_2,i,"p_boundaries_2",1),8,"p_boundaries_2",2)), stan::model::cons_list(stan::model::index_uni(2), stan::model::nil_index_list())), "mmatrix_delta_indiv")), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(get_base1(param_bounds_delta,1,"param_bounds_delta",1), get_base1(param_bounds_delta,2,"param_bounds_delta",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable delta_pred_indiv");
             }
+            current_statement_begin__ = 89;
             stan::math::assign(beta_pred_indiv_lower, subtract(1,beta_pred_indiv));
+            current_statement_begin__ = 90;
             stan::math::assign(delta_pred_indiv_lower, minus(delta_pred_indiv));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -2489,6 +3623,7 @@ public:
 
 
         try {
+            current_statement_begin__ = 132;
             stan::math::assign(Omega, multiply_lower_tri_self_transpose(L_Omega));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -3040,6 +4175,7 @@ public:
         stan::math::fill(nparams, std::numeric_limits<int>::min());
 
         try {
+            current_statement_begin__ = 29;
             stan::math::assign(nparams, sum(n_par));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -3300,29 +4436,37 @@ public:
 
 
         try {
+            current_statement_begin__ = 57;
             stan::math::assign(deltahat, multiply(diag_pre_multiply(sigma,L_Omega),deltahat_tilde));
+            current_statement_begin__ = 59;
             for (int i = 1; i <= N; ++i) {
 
+                current_statement_begin__ = 60;
                 stan::model::assign(alpha_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha_u"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_u");
+                current_statement_begin__ = 61;
                 stan::model::assign(alpha_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha_l"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_l");
+                current_statement_begin__ = 63;
                 stan::model::assign(tau_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau_u"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((get_base1(n_par,1,"n_par",1) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_u");
+                current_statement_begin__ = 64;
                 stan::model::assign(tau_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau_l"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((get_base1(n_par,1,"n_par",1) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_l");
+                current_statement_begin__ = 69;
                 stan::model::assign(delta_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta_u"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 4), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable delta_u");
+                current_statement_begin__ = 70;
                 stan::model::assign(delta_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta_l"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 4), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
@@ -3397,22 +4541,36 @@ public:
         // model body
         try {
 
+            current_statement_begin__ = 74;
             lp_accum__.add(lkj_corr_cholesky_log<propto__>(L_Omega, 1));
+            current_statement_begin__ = 75;
             lp_accum__.add(cauchy_log<propto__>(sigma, 0, 4));
+            current_statement_begin__ = 76;
             lp_accum__.add(normal_log<propto__>(to_vector(deltahat_tilde), 0, 1));
+            current_statement_begin__ = 78;
             lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(1), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,1,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "alpha"), 1, 2));
+            current_statement_begin__ = 79;
             if (as_bool(logical_gt(get_base1(n_other_pars,1,"n_other_pars",1),0))) {
+                current_statement_begin__ = 80;
                 lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(alpha, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(1), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,1,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "alpha"), 0, 1));
             }
+            current_statement_begin__ = 82;
             lp_accum__.add(normal_log<propto__>(stan::model::rvalue(tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(2), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,2,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "tau"), 0.20000000000000001, 0.20000000000000001));
+            current_statement_begin__ = 83;
             if (as_bool(logical_gt(get_base1(n_other_pars,2,"n_other_pars",1),0))) {
+                current_statement_begin__ = 84;
                 lp_accum__.add(normal_log<propto__>(stan::model::rvalue(tau, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(2), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,2,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "tau"), 0, 0.20000000000000001));
             }
+            current_statement_begin__ = 90;
             lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_intercept, stan::model::cons_list(stan::model::index_uni(4), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_intercept,4,"n_intercept",1)), stan::model::nil_index_list())), "pos_intercept")), stan::model::nil_index_list()), "delta"), 1, 2));
+            current_statement_begin__ = 91;
             if (as_bool(logical_gt(get_base1(n_other_pars,4,"n_other_pars",1),0))) {
+                current_statement_begin__ = 92;
                 lp_accum__.add(cauchy_log<propto__>(stan::model::rvalue(delta, stan::model::cons_list(stan::model::index_multi(stan::model::rvalue(pos_other_pars, stan::model::cons_list(stan::model::index_uni(4), stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_other_pars,4,"n_other_pars",1)), stan::model::nil_index_list())), "pos_other_pars")), stan::model::nil_index_list()), "delta"), 0, 2));
             }
+            current_statement_begin__ = 94;
             lp_accum__.add(wiener_log<propto__>(Y_u, alpha_u, tau_u, 0.5, delta_u));
+            current_statement_begin__ = 95;
             lp_accum__.add(wiener_log<propto__>(Y_l, alpha_l, tau_l, 0.5, minus(delta_l)));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);
@@ -3604,29 +4762,37 @@ public:
 
 
         try {
+            current_statement_begin__ = 57;
             stan::math::assign(deltahat, multiply(diag_pre_multiply(sigma,L_Omega),deltahat_tilde));
+            current_statement_begin__ = 59;
             for (int i = 1; i <= N; ++i) {
 
+                current_statement_begin__ = 60;
                 stan::model::assign(alpha_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha_u"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_u");
+                current_statement_begin__ = 61;
                 stan::model::assign(alpha_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_alpha_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_alpha_l"),add(alpha,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max(1, get_base1(n_par,1,"n_par",1)), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable alpha_l");
+                current_statement_begin__ = 63;
                 stan::model::assign(tau_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau_u"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((get_base1(n_par,1,"n_par",1) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_u");
+                current_statement_begin__ = 64;
                 stan::model::assign(tau_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_tau_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_tau_l"),add(tau,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((get_base1(n_par,1,"n_par",1) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 2), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable tau_l");
+                current_statement_begin__ = 69;
                 stan::model::assign(delta_u, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta_u, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),1,"p_boundaries_u",2), get_base1(get_base1(p_boundaries_u,i,"p_boundaries_u",1),2,"p_boundaries_u",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta_u"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 4), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
                             "assigning variable delta_u");
+                current_statement_begin__ = 70;
                 stan::model::assign(delta_l, 
                             stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::nil_index_list()), 
                             multiply(stan::model::rvalue(mmatrix_delta_l, stan::model::cons_list(stan::model::index_min_max(get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),1,"p_boundaries_l",2), get_base1(get_base1(p_boundaries_l,i,"p_boundaries_l",1),2,"p_boundaries_l",2)), stan::model::cons_list(stan::model::index_omni(), stan::model::nil_index_list())), "mmatrix_delta_l"),add(delta,stan::model::rvalue(deltahat, stan::model::cons_list(stan::model::index_min_max((sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 3), stan::model::nil_index_list()), "n_par")) + 1), sum(stan::model::rvalue(n_par, stan::model::cons_list(stan::model::index_min_max(1, 4), stan::model::nil_index_list()), "n_par"))), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "deltahat"))), 
@@ -3680,6 +4846,7 @@ public:
 
 
         try {
+            current_statement_begin__ = 106;
             stan::math::assign(Omega, multiply_lower_tri_self_transpose(L_Omega));
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e,current_statement_begin__);

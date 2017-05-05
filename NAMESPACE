@@ -3,6 +3,7 @@
 export(bayesian_panelfunction)
 export(extract_tbl)
 export(print_signif_par)
+export(stan_wiener_fixed)
 export(stan_wiener_within)
 export(stan_wiener_within2)
 export(stan_wiener_within_fixed_beta)
